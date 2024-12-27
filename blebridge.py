@@ -138,7 +138,7 @@ class AntSendDemo:
         # SPEED - Calculation
         if TreadmillSpeed > 0:
             pace = 1 / (TreadmillSpeed * 3.6 / 60)
-            pace_fast = pace - (5 / 60)
+            pace_fast = pace   # - (5 / 60) -> necessary?
             speed_fast = (1 / pace_fast) * 60 / 3.6
         else:
             speed_fast = 0
