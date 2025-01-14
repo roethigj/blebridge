@@ -116,7 +116,6 @@ def training_status_notify(notifying, characteristic):
 def ftms_control_point_write(value, options):
     global ftms_control_value
     ftms_control_value = [True, False, value]
-    print("control_point1 - ftms", time.process_time(), value)
     return
 
 

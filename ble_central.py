@@ -16,7 +16,7 @@ values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 value = struct.pack('<BBHHBHHHHBBH', 140, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 ftms_status_value = struct.pack('<B', 0)
 training_status_value = struct.pack('<B', 0)
-ftms_control_value = [False, False, struct.pack('<B', 1)]
+ftms_control_value = [False, True, struct.pack('<B', 1)]
 
 
 def scan_for_ftms(
@@ -169,14 +169,12 @@ def connect_and_run(dev=None, device_address=None, stop_event=None):
     central_thread = threading.Thread(target=central_handler, args=(monitor,))
     central_thread.start()
 
-    while not stop_event.wait(0.5):
+    while not stop_event.wait(0.2):
         if ftms_control_value[0] is True:
             # Write the Control Point Value to reset calories burned
             control_point_char.write_value(ftms_control_value[2], flags={})
             ftms_control_value[0] = False
             ftms_control_value[1] = True
-            print("control_point4 - central (time, old, new)", time.process_time(), ftms_control_value[2])
-        time.sleep(0.2)
 
     print("Disconnecting")
     measurement_char_fm.stop_notify()

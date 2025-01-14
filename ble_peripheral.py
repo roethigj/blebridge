@@ -18,7 +18,7 @@ class FtmsPeripheral:
         self.treadmill_data_values = struct.pack('<BBHHBHHHHBBH', 140, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
         self.ftms_status_value = struct.pack('<B', 0)
         self.training_status_value = struct.pack('<B', 0)
-        self.ftms_control_value = [False, False, struct.pack('<B', 0)]
+        self.ftms_control_value = [False, True, struct.pack('<B', 0)]
         self.adapter_address = adapter_address
         self.ftms_monitor = peripheral.Peripheral(adapter_address,
                                                   local_name='BLE_Bridge_Treadmill',
@@ -82,8 +82,7 @@ class FtmsPeripheral:
             self.peripheral_thread = threading.Thread(target=self.peripheral_handler)
             self.peripheral_thread.start()
 
-            while not self.stop_event.wait(0.5):
-                time.sleep(0.5)
+            while not self.stop_event.wait(0.2):
                 ftms.treadmill_values = self.treadmill_data_values
                 ftms.ftms_status_value = self.ftms_status_value
                 ftms.training_status_value = self.training_status_value

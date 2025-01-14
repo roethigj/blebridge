@@ -1,7 +1,8 @@
 import logging
 import asyncio
 import threading
-import time
+
+
 import ftms
 from antsend import AntSend
 from bluezero import adapter
@@ -25,32 +26,23 @@ async def update_ant(ant_obj, values):
         raise asyncio.CancelledError
 
 
-async def update_ble_out(ble_out_obj,
+async def update_ble_out(ble_in_obj,
+                         ble_out_obj,
                          values,
                          ftms_status_value,
-                         training_status_value):
+                         training_status_value,
+                         ftms_control_value):
     try:
-        ble_out = ble_out_obj
-        ble_out.treadmill_data_values = values
-        ble_out.ftms_status_value = ftms_status_value
-        ble_out.training_status_value = training_status_value
+        if ftms_control_value[1] is True:
+            ble_out = ble_out_obj
+            ble_out.treadmill_data_values = values
+            ble_out.ftms_status_value = ftms_status_value
+            ble_out.training_status_value = training_status_value
+        elif ftms_control_value[0] is True:
+            ble_in_obj.ftms_control_value = ftms_control_value
 
     except asyncio.CancelledError:
         print("ble update was cancelled!")
-        raise asyncio.CancelledError
-
-
-async def update_ble_in(ble_in_obj,
-                        ftms_control_value):
-    try:
-        ble_in = ble_in_obj
-        if ftms_control_value[0] is True:
-            print("control_point3 - bridge", time.process_time(), ftms_control_value)
-            # ftms_control_value[0] = False
-            ble_in.ftms_control_value = ftms_control_value
-
-    except asyncio.CancelledError:
-        print("ble in update was cancelled!")
         raise asyncio.CancelledError
 
 
@@ -83,7 +75,7 @@ async def main():
         have_to_work = True
         ble_in = ble_central
         ble_in_thread = threading.Thread(target=ble_in.ble_central, args=(pill2kill, a[1].address, ),
-                                         kwargs={'blacklist_address': a[0].address})
+                                         kwargs={'blacklist_address': a[0].address, })
 
         ble_out = FtmsPeripheral(a[0].address)
         ble_out_thread = threading.Thread(target=ble_out.ftms_peripheral_start,
@@ -98,18 +90,17 @@ async def main():
         ble_out_thread.start()
 
         while True:
-            # print(ble_central.values)
-
             try:
                 task1 = asyncio.create_task(update_ant(ant_send, ble_central.values))
-                task2 = asyncio.create_task(update_ble_out(ble_out,
+                task2 = asyncio.create_task(update_ble_out(ble_in,
+                                                           ble_out,
                                                            ble_central.value,
                                                            ble_central.ftms_status_value,
-                                                           ble_central.training_status_value))
-                task3 = asyncio.create_task(update_ble_in(ble_in, ftms.ftms_control_value))
-                task4 = asyncio.create_task(move_on(0.2))
+                                                           ble_central.training_status_value,
+                                                           ftms.ftms_control_value))
+                task3 = asyncio.create_task(move_on(0.1))
 
-                await asyncio.gather(*[task1, task2, task3, task4])
+                await asyncio.gather(*[task1, task2, task3])
             except MoveOnError:
                 pass
 
