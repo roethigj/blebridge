@@ -10,6 +10,11 @@ import ble_central
 
 from ble_peripheral import FtmsPeripheral
 
+# BLE-Adapter for connection to FTMS (0 or 1)
+# BLE-Adapter for connection to mobile will be the other one (1 or 0)
+x = 0
+
+
 logging.basicConfig(level=logging.WARNING)
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,19 +70,23 @@ async def main():
         print("Only one adapter available. No Peripheral!")
         have_to_work = False
         ble_in = ble_central
-        ble_in_thread = threading.Thread(target=ble_in.ble_central, args=(pill2kill, a[0].address))
+        ble_in_thread = threading.Thread(target=ble_in.ble_central, args=(pill2kill, a[x].address))
 
-        ble_out = FtmsPeripheral(a[0].address)
+        ble_out = FtmsPeripheral(a[x].address)
         ble_out_thread = threading.Thread(target=ble_out.ftms_peripheral_start,
                                           args=(pill2kill3, have_to_work,))
 
     else:
+        if x == 0:
+            y = 1
+        else:
+            y = 0
         have_to_work = True
         ble_in = ble_central
-        ble_in_thread = threading.Thread(target=ble_in.ble_central, args=(pill2kill, a[1].address, ),
-                                         kwargs={'blacklist_address': a[0].address, })
+        ble_in_thread = threading.Thread(target=ble_in.ble_central, args=(pill2kill, a[y].address, ),
+                                         kwargs={'blacklist_address': a[x].address, })
 
-        ble_out = FtmsPeripheral(a[0].address)
+        ble_out = FtmsPeripheral(a[x].address)
         ble_out_thread = threading.Thread(target=ble_out.ftms_peripheral_start,
                                           args=(pill2kill3, have_to_work,))
 
