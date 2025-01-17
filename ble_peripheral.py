@@ -82,7 +82,7 @@ class FtmsPeripheral:
             self.peripheral_thread = threading.Thread(target=self.peripheral_handler)
             self.peripheral_thread.start()
 
-            while not self.stop_event.wait(0.2):
+            while not self.stop_event.wait(0.25):
                 ftms.treadmill_values = self.treadmill_data_values
                 ftms.ftms_status_value = self.ftms_status_value
                 ftms.training_status_value = self.training_status_value

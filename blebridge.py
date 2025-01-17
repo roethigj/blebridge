@@ -6,13 +6,13 @@ import threading
 import ftms
 from antsend import AntSend
 from bluezero import adapter
-import ble_central
 
 from ble_peripheral import FtmsPeripheral
+from ble_central import BleCentral
 
 # BLE-Adapter for connection to FTMS (0 or 1)
 # BLE-Adapter for connection to mobile will be the other one (1 or 0)
-x = 0
+x = 1
 
 
 logging.basicConfig(level=logging.WARNING)
@@ -69,8 +69,8 @@ async def main():
     if len(a) < 2:
         print("Only one adapter available. No Peripheral!")
         have_to_work = False
-        ble_in = ble_central
-        ble_in_thread = threading.Thread(target=ble_in.ble_central, args=(pill2kill, a[x].address))
+        ble_in = BleCentral(stop_event=pill2kill, adapter_address=a[x].address)
+        ble_in_thread = threading.Thread(target=ble_in.ble_central_start)
 
         ble_out = FtmsPeripheral(a[x].address)
         ble_out_thread = threading.Thread(target=ble_out.ftms_peripheral_start,
@@ -82,9 +82,8 @@ async def main():
         else:
             y = 0
         have_to_work = True
-        ble_in = ble_central
-        ble_in_thread = threading.Thread(target=ble_in.ble_central, args=(pill2kill, a[y].address, ),
-                                         kwargs={'blacklist_address': a[x].address, })
+        ble_in = BleCentral(stop_event=pill2kill, adapter_address=a[y].address, blacklist_address=a[x].address)
+        ble_in_thread = threading.Thread(target=ble_in.ble_central_start)
 
         ble_out = FtmsPeripheral(a[x].address)
         ble_out_thread = threading.Thread(target=ble_out.ftms_peripheral_start,
@@ -100,16 +99,16 @@ async def main():
 
         while True:
             try:
-                task1 = asyncio.create_task(update_ant(ant_send, ble_central.values))
                 task2 = asyncio.create_task(update_ble_out(ble_in,
                                                            ble_out,
-                                                           ble_central.value,
-                                                           ble_central.ftms_status_value,
-                                                           ble_central.training_status_value,
+                                                           ble_in.value,
+                                                           ble_in.ftms_status_value,
+                                                           ble_in.training_status_value,
                                                            ftms.ftms_control_value))
-                task3 = asyncio.create_task(move_on(0.1))
+                task1 = asyncio.create_task(update_ant(ant_send, ble_in.values))
+                task3 = asyncio.create_task(move_on(0.25))
 
-                await asyncio.gather(*[task1, task2, task3])
+                await asyncio.gather(*[task2, task3])
             except MoveOnError:
                 pass
 
