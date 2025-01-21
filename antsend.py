@@ -16,8 +16,8 @@ Channel_Frequency = 57
 
 
 class AntSend:
-    def __init__(self):
-
+    def __init__(self, stop_event=None):
+        self.stop_event = stop_event
         self.ANTMessageCount = 0
         self.ANTMessagePayload = [0, 0, 0, 0, 0, 0, 0, 0]
 
@@ -152,12 +152,18 @@ class AntSend:
                 self.ANTMessagePayload)
         except OverflowError:
             print('overflow-error: Watch disconnected?')
+            self.channel.close()
+            self.node.stop()
+            time.sleep(1)
+            print('restarting...')
+            self.openchanel(self.stop_event)
 
     def node_handler(self):
         self.node.start()
 
     # Open Channel
-    def openchanel(self, stop_event):
+    def openchanel(self):
+        print("ANT+ Channel is open")
 
         # self.node = Node()  # initialize the ANT+ device as node, now in init
         # self.x = asyncio.create_task(self.run_ble())
@@ -179,7 +185,7 @@ class AntSend:
         self.channel.open()  # Open the ANT-Channel with given configuration
         node_thread = threading.Thread(target=self.node_handler)
         node_thread.start()
-        while not stop_event.wait(1):
+        while not self.stop_event.wait(1):
             time.sleep(4)
             # print("node läuft")
 

@@ -1,5 +1,3 @@
-import time
-
 from utils import str_to_byte_arr
 import dbus
 import struct

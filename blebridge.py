@@ -12,7 +12,7 @@ from ble_central import BleCentral
 
 # BLE-Adapter for connection to FTMS (0 or 1)
 # BLE-Adapter for connection to mobile will be the other one (1 or 0)
-x = 1
+x = 0
 
 
 logging.basicConfig(level=logging.WARNING)
@@ -60,12 +60,17 @@ async def move_on(pause):
     raise MoveOnError()
 
 
+def get_adapters():
+    a = list(adapter.Adapter.available())
+    return a
+
+
 async def main():
     pill2kill = threading.Event()
     pill2kill2 = threading.Event()
     pill2kill3 = threading.Event()
 
-    a = list(adapter.Adapter.available())
+    a = get_adapters()
     if len(a) < 2:
         print("Only one adapter available. No Peripheral!")
         have_to_work = False
@@ -85,12 +90,12 @@ async def main():
         ble_in = BleCentral(stop_event=pill2kill, adapter_address=a[y].address, blacklist_address=a[x].address)
         ble_in_thread = threading.Thread(target=ble_in.ble_central_start)
 
-        ble_out = FtmsPeripheral(a[x].address)
+        ble_out = FtmsPeripheral(stop_event=pill2kill3, adapter_address=a[x].address)
         ble_out_thread = threading.Thread(target=ble_out.ftms_peripheral_start,
-                                          args=(pill2kill3, have_to_work,))
+                                          args=(have_to_work,))
 
-    ant_send = AntSend()
-    ant_thread = threading.Thread(target=ant_send.openchanel, args=(pill2kill2,))
+    ant_send = AntSend(pill2kill2)
+    ant_thread = threading.Thread(target=ant_send.openchanel)
 
     try:
         ant_thread.start()  # start
@@ -99,6 +104,7 @@ async def main():
 
         while True:
             try:
+
                 task2 = asyncio.create_task(update_ble_out(ble_in,
                                                            ble_out,
                                                            ble_in.value,

@@ -18,6 +18,7 @@ class BleCentral:
         self.stop_event = stop_event
         self.adapter_address = adapter_address
         self.blacklist_address = kwargs.get('blacklist_address', None)
+        self.central_thread = None
 
         self.ftms_srv = '00001826-0000-1000-8000-00805f9b34fb'
         self.tm_data_uuid = '00002acd-0000-1000-8000-00805f9b34fb'
@@ -101,13 +102,21 @@ class BleCentral:
         measurement_char_ts.start_notify()
         measurement_char_ts.add_characteristic_cb(self.on_new_ts_measurement)
 
-        central_thread = threading.Thread(target=central_handler, args=(monitor,))
-        central_thread.start()
+        self.central_thread = threading.Thread(target=central_handler, args=(monitor,))
+        self.central_thread.daemon = True
+        self.central_thread.start()
         try:
-            while not self.stop_event.wait(0.25):
+            # Initialize Treadmill
+            control_point_char.write_value(bytearray([0x00]), flags={})
+            time.sleep(0.25)
+            control_point_char.write_value(bytearray([0x01]), flags={})
+            time.sleep(0.25)
+            control_point_char.write_value(bytearray([0x00]), flags={})
+            while not self.stop_event.wait(0.1):
                 if monitor.connected:
                     if self.ftms_control_value[0] is True:
                         # Write the Control Point Value
+                        print(self.ftms_control_value[2])
                         control_point_char.write_value(self.ftms_control_value[2], flags={})
                         self.ftms_control_value[0] = False
                         self.ftms_control_value[1] = True
@@ -121,7 +130,6 @@ class BleCentral:
                         time.sleep(0.5)
                         dongle.powered = True
                         time.sleep(1)
-                        subprocess.run((['bluetoothctl', 'remove', dev.address]))
                         print("scanning")
                         devices = self.scan_for_ftms()
                         for ftms in devices:
@@ -141,7 +149,6 @@ class BleCentral:
                 time.sleep(0.5)
                 dongle.powered = True
                 time.sleep(1)
-                subprocess.run((['bluetoothctl', 'remove', dev.address]))
                 print("scanning")
                 devices = self.scan_for_ftms()
                 for ftms in devices:

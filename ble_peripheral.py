@@ -14,7 +14,7 @@ import threading
 
 
 class FtmsPeripheral:
-    def __init__(self, adapter_address):
+    def __init__(self, stop_event=None, adapter_address=None, **kwargs):
         self.treadmill_data_values = struct.pack('<BBHHBHHHHBBH', 140, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
         self.ftms_status_value = struct.pack('<B', 0)
         self.training_status_value = struct.pack('<B', 0)
@@ -23,22 +23,20 @@ class FtmsPeripheral:
         self.ftms_monitor = peripheral.Peripheral(adapter_address,
                                                   local_name='BLE_Bridge_Treadmill',
                                                   appearance=0x0440)
-        self.stop_event = None
-        self.have_to_work = False
+        self.stop_event = stop_event
+        self.have_to_work = kwargs.get('have_to_work', True)
         self.dongle = None
         self.peripheral_thread = None
 
     def peripheral_handler(self):
         self.ftms_monitor.publish()
 
-    def ftms_peripheral_start(self, stop_event, have_to_work):
+    def ftms_peripheral_start(self, have_to_work=True):
         """
         Creates advertises and starts the peripheral
         :param stop_event: to cancel publishing loop
         :param have_to have_to_work: only work, when 2nd BT dongle is available
         """
-
-        self.stop_event = stop_event
         self.have_to_work = have_to_work
 
         logger = logging.getLogger('localGATT')
@@ -80,15 +78,18 @@ class FtmsPeripheral:
 
             # Publish peripheral and start event loop
             self.peripheral_thread = threading.Thread(target=self.peripheral_handler)
+            self.peripheral_thread.daemon = True
             self.peripheral_thread.start()
 
-            while not self.stop_event.wait(0.25):
+            while not self.stop_event.wait(0.1):
                 ftms.treadmill_values = self.treadmill_data_values
                 ftms.ftms_status_value = self.ftms_status_value
                 ftms.training_status_value = self.training_status_value
 
-            self.dongle.powered = False
-            time.sleep(0.3)
-            self.dongle.powered = True
+            #self.dongle.powered = False
+            #time.sleep(0.5)
+            #self.dongle.powered = True
             self.ftms_monitor.mainloop.quit()
-            self.peripheral_thread.join(1)
+
+            self.peripheral_thread.join()
+            print("Peripheral stopped")
