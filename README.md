@@ -18,6 +18,8 @@ In addition, I didn't wanted to lose the ability to control my treadmill with th
 ## Usage
 clone/ download git
 run python blebridge.py
+ 
+gui added for more convenience: run python gui2.py
 
 ## Hints
 Some Bluetooth Adapters don't connect well to FTMS's. You may switch the adapter in blebridge.py header.
